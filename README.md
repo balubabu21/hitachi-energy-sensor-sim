@@ -53,6 +53,7 @@ docker-compose.yml
 - Or Docker with the Docker Compose plugin (to use the container option below)
 
 No database, API keys, or `.env` file are required for local development.
+Azure Communication Services Email credentials are only required to send permanent-addition requests.
 
 ### Run with Docker
 
@@ -90,6 +91,12 @@ BACKEND_URL=http://localhost:8000 npm run dev
 Open http://localhost:3000. The frontend proxies `/api/*` requests to the backend; keep both
 servers running while using the app. Stop each server with `Ctrl+C` in its terminal.
 
+To enable sensor review requests, configure `ACS_EMAIL_CONNECTION_STRING` and
+`ACS_EMAIL_SENDER_ADDRESS` for the backend. The sender must be a verified sender on an Azure
+Communication Services Email domain. Do not commit the connection string; set it as a secret in
+your local environment or container platform. If the variables are not configured, the form reports
+that email delivery is unavailable rather than showing a false success.
+
 To run the backend tests, from the `backend/` directory with its virtual environment activated:
 
 ```bash
@@ -113,6 +120,11 @@ identity (`-target`), builds both images with `az acr build`, then applies the f
 new `image_tag`. Re-run it to ship changes. Keep the Azure CLI's active subscription aligned with
 `subscription_id` in `terraform.tfvars`.
 Apps scale to zero by default (`min_replicas = 0`), so the first request after idle takes a few seconds.
+To enable requests in Azure Container Apps, add the ACS connection string as a Container App secret,
+map it to the backend environment variable `ACS_EMAIL_CONNECTION_STRING`, and set the verified sender
+address as `ACS_EMAIL_SENDER_ADDRESS`. The app emails sensor definitions and submitter details to
+`balu.babu@method.com`; requests require an approver email ending in `@hitachienergy.com`. The
+approver domain is checked, but the app does not independently verify mailbox ownership.
 
 ## API
 
@@ -121,8 +133,23 @@ Apps scale to zero by default (`min_replicas = 0`), so the first request after i
 | GET | `/api/products` | Product summaries |
 | GET | `/api/products/{product}` | Product with sensors, fields and envelope fields |
 | GET | `/api/products/{product}/sensors/{sensor}/mock` | Mock readings. Query: `count` (1–1000), `seed`, `anomaly_rate` (0–1), `interval_s`, `asset_id` |
+| POST | `/api/products/{product}/sensors/{sensor}/mock` | Mock readings from an editable schema. JSON body: `{"fields": [...]}` |
 | GET | `/api/products/{product}/sensors/{sensor}/code` | Generator source (standalone script, API route, curl) |
+| POST | `/api/products/{product}/sensors/{sensor}/code` | Generator source for the supplied editable schema. JSON body: `{"fields": [...]}` |
+| POST | `/api/sensor-requests` | Email a browser-only sensor definition and submitter details for review |
 | GET | `/api/health` | Liveness |
+
+Sensor fields can be removed, given new numeric ranges or enum values, or supplemented with custom fields in the UI.
+Edits are saved in that browser's local storage; they affect that browser's generated mock data and
+code, but do not change the catalogue defaults or other users' schemas. Numeric field ranges must
+include the nominal value; applying a new range clamps the nominal value when necessary.
+
+Users can also create browser-only sensors under the currently selected product. These sensors and
+their fields are stored in that browser's local storage and generate mock readings locally. Use
+**Request permanent addition** on a browser-only sensor to submit its definition, submitter name and
+email, and Hitachi Energy approver email for review. Approval requests are emailed to the configured
+review mailbox (up to three requests per submitter email per backend instance per hour); they do not
+automatically modify the shared catalogue.
 
 Example reading:
 ```json

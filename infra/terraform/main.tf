@@ -122,6 +122,14 @@ resource "azurerm_container_app" "backend" {
   }
 
   depends_on = [azurerm_role_assignment.acr_pull]
+
+  lifecycle {
+    # Runtime secrets and environment variables are managed outside Terraform.
+    ignore_changes = [
+      secret,
+      template[0].container[0].env,
+    ]
+  }
 }
 
 resource "azurerm_container_app" "frontend" {

@@ -2,6 +2,9 @@
 services:
   backend:
     build: ./backend
+    environment:
+      ACS_EMAIL_CONNECTION_STRING: ${ACS_EMAIL_CONNECTION_STRING:-}
+      ACS_EMAIL_SENDER_ADDRESS: ${ACS_EMAIL_SENDER_ADDRESS:-}
     ports:
       - "8000:8000"
 

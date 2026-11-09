@@ -26,6 +26,19 @@ export interface SensorSpec {
   fields: FieldSpec[];
 }
 
+export interface BrowserSensor extends SensorSpec {
+  defaultFields: FieldSpec[];
+}
+
+export interface SensorSubmission {
+  product_id: string;
+  product_name: string;
+  sensor: SensorSpec;
+  submitter_name: string;
+  submitter_email: string;
+  approver_email: string;
+}
+
 export interface EnvelopeField {
   name: string;
   json_type: string;
